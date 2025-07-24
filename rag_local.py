@@ -1,24 +1,30 @@
+# -*- coding: utf-8 -*-
+
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.llms import HuggingFacePipeline
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
-from langchain.document_loaders import TextLoader
+from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
 import os
 
 # ========== Settings ==========
 DB_DIR = "chroma_db"
-CORPUS_FILE = "data/hsc_bangla_english.txt"
+PDF_PATH = "data/HSC26-Bangla1st-Paper.pdf"
 EMBED_MODEL = "sentence-transformers/distiluse-base-multilingual-cased-v1"
 LLM_MODEL = "google/flan-t5-base"  # Or use: "google/mt5-small" for more multilingual support
 
-# ========== Step 1: Load and Split Corpus ==========
+# ========== Step 1: Load and Split PDF ==========
 def load_documents():
-    loader = TextLoader(CORPUS_FILE, encoding="utf-8")
+    loader = PyPDFLoader(PDF_PATH)
+    # loader = PyPDFLoader(PDF_PATH, encoding="utf-8")
     raw_docs = loader.load()
     splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
+    # # print some examples of the raw documents
+    # print(f"[INFO] Loaded {len(raw_docs)} raw documents from PDF.")
+    # for i, doc in enumerate(raw_docs):  # Show first 3 documents
+    #     print(f"[INFO] Raw Document {i+1}: {doc.page_content[:100]}...")
     return splitter.split_documents(raw_docs)
 
 # ========== Step 2: Build Vectorstore with Chroma ==========
@@ -50,7 +56,7 @@ def setup_qa(vectorstore, llm):
 # ========== Step 5: Main ==========
 def main():
     if not os.path.exists(DB_DIR):
-        print("[INFO] Building vector DB...")
+        print("[INFO] Building vector DB from PDF...")
         documents = load_documents()
         vectorstore = build_vectorstore(documents)
     else:
